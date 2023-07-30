@@ -1,21 +1,31 @@
 import { CommandHandler } from '../../../infra/cqrs/CommandHandler.interface'
 import ClientRepository from '../../repository/client.repository';
+import Client from '../../../domain/entity/client';
+import { ClientNotFoundException } from '../../exception/ClientNotFoundException';
 
-export default class CreateClient implements CommandHandler<Promise<void>, input> {
+export default class CreateClient implements CommandHandler<Promise<void | boolean>, Client> {
 
     constructor(private readonly repository: ClientRepository) { }
-    handler(input: input): Promise<void> {
-        try {
-            return this.repository.save(input);
-        } catch (error) {
-            throw new Error(`Client ${input.client_number} not can be saved`);
+    async handler(input: Client): Promise<void> {
+        const clientAlreadyExists = await this.checkIfClientAlreadyExists(input);
+        if (!clientAlreadyExists) {
+            try {
+                return await this.repository.save(input);
+            } catch (error) {
+                console.log(error);
+                throw new Error(`Client ${input.client_number} not can be saved`);
+            }
         }
     }
-}
-type input = {
-    readonly id: string,
-    readonly client_number: number,
-    readonly instalation_number: number,
-    readonly name: string,
-    readonly address: string
+
+    private async checkIfClientAlreadyExists(client: Client): Promise<boolean> {
+        try {
+            const result = await this.repository.getByClientNumber(client.client_number);
+            if (result.client_number) return true;
+        } catch (err) {
+            if (err instanceof ClientNotFoundException) return false;
+            throw err;
+        }
+        return false
+    }
 }

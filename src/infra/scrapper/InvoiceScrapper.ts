@@ -16,13 +16,14 @@ export class InvoiceScrapper extends Scrapper {
         const client_number = numbers ? numbers[0] : '';
         const client_instalation = numbers ? numbers[1] : '';
         const address = `${this.rows[34]}, ${this.rows[35]}, ${this.rows[36]}`;
-        return Client.create(parseInt(client_number), parseInt(client_instalation), name, address);
+        return Client.create(BigInt(client_number), BigInt(client_instalation), name, address);
     }
 
-    public extractInvoice(): Invoice {
+    public extractInvoice(client_id: string): Invoice {
         return Invoice.create(
             this.getMonth(),
             this.getExpirationDate(),
+            client_id,
             this.getTotal(),
             this.extractBarCode() ?? ''
         );
@@ -43,7 +44,7 @@ export class InvoiceScrapper extends Scrapper {
             }).find(row => row)
     }
 
-    public extractItems(): InvoiceItem[] {
+    public extractItems(invoice_id: string): InvoiceItem[] {
         let getData = false;
         let itemsRows = this.rows.filter(row => {
             if (row.match(/ICMSICMS/g)) {
@@ -56,10 +57,10 @@ export class InvoiceScrapper extends Scrapper {
                 return row;
             }
         })
-        return this.createItemsFromRows(itemsRows);
+        return this.createItemsFromRows(itemsRows, invoice_id);
     }
 
-    private createItemsFromRows(rows: string[]): InvoiceItem[] {
+    private createItemsFromRows(rows: string[], invoice_id: string): InvoiceItem[] {
         let regex = /^(.*?k?Wh)\s+(-?\d+(?:\.\d+)?(?:,\d+)?)(?:\s+(-?\d+(?:\.\d+)?(?:,\d+)?)){2}(?:\s+(-?\d+(?:\.\d+)?(?:,\d+)?))?/;
         let items = rows.map((row: string) => {
             let match;
@@ -67,14 +68,14 @@ export class InvoiceScrapper extends Scrapper {
                 return InvoiceItem.create(
                     this.extractDescription(match[1]),
                     parseFloat(match[3].replace(",", ".")),
-                    undefined,
+                    invoice_id,
                     this.extractUnityFromDescription(match[1]),
                     parseFloat(match[3].replace(",", ".")),
                     parseFloat(match[2].replace(",", ".")),
                 )
             } else {
                 try {
-                    return this.createTaxesItemFromRow(row)
+                    return this.createTaxesItemFromRow(row, invoice_id)
                 } catch (err) {
                     console.error(err);
                 }
@@ -84,13 +85,14 @@ export class InvoiceScrapper extends Scrapper {
         return items
     }
 
-    private createTaxesItemFromRow(item: string): InvoiceItem {
+    private createTaxesItemFromRow(item: string, invoice_id: string): InvoiceItem {
         let regex = /^(.*?)\s+(\d{1,3}(?:\.\d{3})*,\d{2})$/;
         let match;
         if ((match = regex.exec(item)) != null) {
             return InvoiceItem.create(
                 match[1].trim(),
-                parseFloat(match[2].replace(",", "."))
+                parseFloat(match[2].replace(",", ".")),
+                invoice_id
             )
         }
         throw new Error("taxes item not found")

@@ -1,0 +1,57 @@
+datasource db {
+    url      = env("DB_URL")
+    provider = "postgresql"
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+enum InvoiceItemUnityEnum {
+    kWh
+    Wh
+}
+
+model Client {
+    id                 String    @id @default(uuid())
+    client_number      BigInt    @unique
+    instalation_number BigInt
+    address            String
+    name               String
+    created_at         DateTime  @default(now())
+    updated_at         DateTime  @updatedAt
+    Invoice            Invoice[]
+
+    @@map("clients")
+}
+
+model Invoice {
+    id              String        @id @default(uuid())
+    month_date      DateTime
+    expiration_date DateTime
+    total           Decimal       @db.Money
+    barcode         String?
+    Client          Client        @relation(fields: [client_id], references: [id])
+    client_id       String
+    created_at      DateTime      @default(now())
+    updated_at      DateTime      @updatedAt
+    InvoiceItem     InvoiceItem[]
+
+    @@map("invoices")
+}
+
+model InvoiceItem {
+    id String @id @default(uuid())
+
+    description String
+    total_price Decimal               @db.Money
+    unity       InvoiceItemUnityEnum?
+    unit_price  Decimal?              @db.Money
+    quantity    Int?
+    Invoice     Invoice?              @relation(fields: [invoice_id], references: [id])
+    invoice_id  String
+    created_at  DateTime              @default(now())
+    updated_at  DateTime              @updatedAt
+
+    @@map("invoice_items")
+}

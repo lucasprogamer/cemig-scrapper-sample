@@ -4,5 +4,5 @@ export default interface InvoiceRepository {
     get(id: string): Promise<Invoice | undefined>;
     getByBarCode(barcode: string): Promise<Invoice | undefined>;
     getByMonth(month: Date): Promise<Invoice | undefined>;
-    checkIfInvoiceExists(input: { bar_code?: string, client_number: number, month_date?: Date }): Promise<boolean>
+    checkIfInvoiceExists(input: { bar_code?: string, client_number: bigint, month_date?: Date }): Promise<boolean>
 }

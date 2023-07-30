@@ -20,7 +20,7 @@ test("should be read the barcode from invoice", async () => {
 test("should be create items from pdf file", async () => {
     const scrapper = new InvoiceScrapper(__dirname + '/../contents/sample.pdf');
     await scrapper.parse();
-    const items = scrapper.extractItems();
+    const items = scrapper.extractItems('asd');
     expect(items.length).toBeGreaterThan(0);
     expect(items[0] instanceof Item).toBe(true)
 });
@@ -29,7 +29,7 @@ test("should be create items from pdf file", async () => {
 test("should be create Invoice from pdf file", async () => {
     const scrapper = new InvoiceScrapper(__dirname + '/../contents/sample.pdf');
     await scrapper.parse();
-    const invoice = scrapper.extractInvoice();
+    const invoice = scrapper.extractInvoice('sadsa');
     expect(invoice instanceof Invoice).toBe(true)
 });
 

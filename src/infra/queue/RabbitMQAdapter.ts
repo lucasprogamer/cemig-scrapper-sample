@@ -1,36 +1,34 @@
 import Queue from "./queue.interface";
-import amqp from "amqplib";
+import amqp, { Connection } from "amqplib";
 
 export default class RabbitMQAdapter implements Queue {
-    connection: any;
+    private connection!: Connection;
 
     async connect(): Promise<void> {
-        this.connection = await amqp.connect(process.env.RABBIT_URL ?? 'amqp://rabbitmq:5672');
+        this.connection = await amqp.connect(process.env.RABBIT_URL ?? 'amqp://localhost:5672');
     }
 
-    async on(queueName: string, callback: Function): Promise<void> {
+    async on(queueName: string, callback: Function, args?: { prefetch?: number }): Promise<void> {
         const channel = await this.connection.createChannel();
+        if (args && args.prefetch) {
+            channel.prefetch(1);
+        }
         await channel.assertQueue(queueName, { durable: true });
         channel.consume(queueName, async function (msg: any) {
             const input = JSON.parse(msg?.content?.toString());
             await callback(input)
+            channel.ack(msg);
         });
     }
 
     async publish(queueName: string, data: any): Promise<void> {
         const channel = await this.connection.createChannel();
-        await channel.assertQueue(queueName, { durable: true });
-        await channel.sendToQueue(queueName, Buffer.from(JSON.stringify(data)));
-    }
+        await channel.assertQueue(queueName, {
+            durable: true, arguments: {
 
-    async getNext(queueName: string): Promise<string> {
-        const channel = await this.connection.createChannel();
-        await channel.assertQueue(queueName, { durable: true });
-        const { message } = await channel.get(queueName);
-        channel.ack(message);
-        await channel.close();
-        this.connection.close();
-        return message.content.toString();
+            }
+        });
+        await channel.sendToQueue(queueName, Buffer.from(this.serializeQueueMessage(data)));
     }
 
     async queueCount(queueName: string): Promise<number> {
@@ -40,5 +38,9 @@ export default class RabbitMQAdapter implements Queue {
         channel.close();
         await this.connection.close();
         return queueInfo.messageCount;
+    }
+
+    private serializeQueueMessage(data: any): string {
+        return JSON.stringify(data, (_, v) => typeof v === 'bigint' ? v.toString() : v)
     }
 }

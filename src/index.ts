@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import ClientRepositoryDatabase from "./infra/repository/ClientRepositoryDatabase";
 import GetClients from "./application/usecase/client/get-clients";
 import getClient from "./application/usecase/client/get-client";
@@ -11,11 +12,16 @@ import CreateInvoiceItem from "./application/usecase/invoice-item/create-invoice
 import dotenv from 'dotenv'
 import InvoiceItemRepositoryDatabase from "./infra/repository/InvoiceItemRepositoryDatabase";
 import { PrismaClient } from '@prisma/client'
+import InvoiceUsageMonthly from "./application/usecase/reports/monthly/invoice-usage";
+import InvoiceInjectedUsageMonthly from "./application/usecase/reports/monthly/invoice-injected-usage";
 
 async function main() {
     dotenv.config()
     const app = express();
     app.use(express.json());
+    app.use(cors({
+        origin: '*'
+    }));
     const queue = new RabbitMQAdapter();
 
     const prisma = new PrismaClient()
@@ -57,7 +63,16 @@ async function main() {
             })
         }
     })
-
+    app.get('/api/invoices/monthly/report', async (req, res) => {
+        const command = new InvoiceUsageMonthly(invoiceRepository);
+        const response = await command.handler();
+        res.send(response);
+    })
+    app.get('/api/invoices/monthly/report/injected', async (req, res) => {
+        const command = new InvoiceInjectedUsageMonthly(invoiceRepository);
+        const response = await command.handler();
+        res.send(response);
+    })
     app.listen(3001, () => {
         console.log(`⚡️[server]: Server is running`)
     });

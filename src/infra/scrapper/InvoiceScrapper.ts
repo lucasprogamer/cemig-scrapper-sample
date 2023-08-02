@@ -71,7 +71,7 @@ export class InvoiceScrapper extends Scrapper {
                     invoice_id,
                     this.extractUnityFromDescription(match[1]),
                     parseFloat(match[3].replace(",", ".")),
-                    parseFloat(match[2].replace(",", ".")),
+                    parseInt(match[2].replace(".", "")),
                 )
             } else {
                 try {

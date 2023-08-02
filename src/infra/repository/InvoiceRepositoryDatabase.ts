@@ -36,4 +36,31 @@ export default class InvoiceRepositoryDatabase implements InvoiceRepository {
         return res.counter > 0;
     }
 
+    async getLastYear(input: { item?: 'Energia Elétrica' | 'Energia injetada HFP' }): Promise<any> {
+        const date = new Date();
+        const dateSearch = new Date(date.setMonth(date.getMonth() - 12))
+        return await this.prisma.invoice.findMany(
+            {
+                select: {
+                    month_date: true,
+                    total: true,
+                    id: true,
+                    InvoiceItem: {
+                        select: {
+                            id: true,
+                            unit_price: true,
+                            quantity: true,
+                            description: true,
+                            total_price: true,
+                        },
+                        where: {
+                            description: input?.item ?? 'Energia Elétrica'
+                        }
+                    }
+                },
+                where: { month_date: { gte: dateSearch } },
+            }
+        )
+    }
+
 }

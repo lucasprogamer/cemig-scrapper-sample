@@ -30,7 +30,7 @@ export class InvoiceRepositoryMock implements InvoiceRepository {
             reject(new Error(`Invoice not found: ${invoice?.month_date}`));
         });
     }
-    checkIfInvoiceExists(input: { bar_code?: string | undefined; client_number: number; month_date?: Date | undefined; }): Promise<boolean> {
+    checkIfInvoiceExists(input: { bar_code?: string, client_number: bigint, month_date?: Date }): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             const invoice = this.invoices.find(invoice => {
                 if ((invoice.barcode === input.bar_code || invoice.month_date == input.month_date)) return true;
@@ -38,6 +38,9 @@ export class InvoiceRepositoryMock implements InvoiceRepository {
             if (invoice) resolve(true);
             resolve(false)
         });
+    }
+    getLastYear(input: { client_id: string; }): Promise<any> {
+        throw new Error("Method not implemented.");
     }
 
 }
